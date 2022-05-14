@@ -2,6 +2,7 @@ import spotipy
 import uuid
 import pandas as pd
 from spotipy.oauth2 import SpotifyOAuth
+import streamlit as st
 
 def init_spotipy():
     USERNAME = st.secrets['USERNAME']
