@@ -1,4 +1,3 @@
-import streamlit as st
 from multiapp import MultiApp
 from apps import sample, genre
 
