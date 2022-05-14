@@ -1,6 +1,6 @@
 import streamlit as st
 from multiapp import MultiApp
-from tabs import sample, genre
+from apps import sample, genre
 
 app = MultiApp()
 
