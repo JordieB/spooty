@@ -1,7 +1,7 @@
-def app():
-    import streamlit as st
-    import pandas as pd
+import streamlit as st
+import pandas as pd
 
+def app():
     df = pd.read_feather('data.feather')
     df = df.loc[:,['artist_name','genres']].drop_duplicates().reset_index()
 
