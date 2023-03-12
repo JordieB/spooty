@@ -1,9 +1,9 @@
-import streamlit as st
-import spotipy
-import time
-import uuid
-import pandas as pd
+from time import sleep
+from uuid import uuid4
+from pandas import DataFrame, concat
 import numpy as np
+import streamlit as st
+from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 
 def create_spotipy_client():
@@ -59,36 +59,13 @@ def create_spotipy_client():
     # Cached token found
     else:
         # Create spotify client
-        spotify = spotipy.Spotify(auth=token_info['access_token'])
+        spotify = Spotify(auth=token_info['access_token'])
         
 
     if spotify:
         return spotify
     else:
         pass
-
-# def init_spotipy():
-#     USERNAME = st.secrets['USERNAME']
-#     CLIENT_ID = st.secrets['CLIENT_ID']
-#     CLIENT_SECRET = st.secrets['CLIENT_SECRET']
-#     REFRESH_TOKEN = st.secrets['REFRESH_TOKEN']
-#     REDIRECT_URI = st.secrets['REDIRECT_URI']
-#     SCOPE = st.secrets['REFRESH_TOKEN']
-#     user_id = st.secrets['user_id']
-
-#     auth_manager = SpotifyOAuth(
-#         CLIENT_ID,
-#         CLIENT_SECRET,
-#         REDIRECT_URI,
-#         open_browser=False,  # False to get URL, True to enter it
-#         scope=SCOPE,
-#         username=USERNAME
-#     )
-
-#     refresh = auth_manager.refresh_access_token(REFRESH_TOKEN)
-#     spotify = spotipy.Spotify(auth=refresh['access_token'])
-
-#     return spotify
 
 @st.cache_data(ttl=3600)
 def pull_playlists(_spotify):
@@ -112,8 +89,8 @@ def pull_playlists(_spotify):
     # Make a playlist dataframe
     dfs = []
     for pl_dict in all_pls:
-        dfs.append(pd.DataFrame(pl_dict['items']))
-    playlists = pd.concat(dfs)
+        dfs.append(DataFrame(pl_dict['items']))
+    playlists = concat(dfs)
     playlists.reset_index(drop=True, inplace=True)
     
     # Only grab backlog playlists (lack of folder dims) via prefix
@@ -138,12 +115,12 @@ def pull_tracks(_spotify, playlist_df):
         track_data_dict = _spotify.playlist_tracks(playlist_id)
         track_data_dict['playlist_id'] = playlist_id
         track_data.append(track_data_dict)
-        time.sleep(1)
+        sleep(1)
     
     # Pull data out of responses
     tracks_dfs = []
     for _tracks in track_data:
-        tracks = pd.DataFrame(_t['track'] for _t in _tracks['items'])
+        tracks = DataFrame(_t['track'] for _t in _tracks['items'])
         tracks.loc[:,'artist_name'] = tracks.loc[:,'artists'].apply(lambda x: x[0].get('name', np.nan))
         # For getting artist genres later
         tracks.loc[:,'artist_id'] = tracks.loc[:,'artists'].apply(lambda x: x[0].get('id', np.nan))
@@ -155,7 +132,7 @@ def pull_tracks(_spotify, playlist_df):
         tracks_dfs.append(tracks)
 
     # Create tracks df
-    tracks = pd.concat(tracks_dfs, sort=False)
+    tracks = concat(tracks_dfs, sort=False)
     tracks.reset_index(drop=True, inplace=True)
     
     return tracks
@@ -183,7 +160,7 @@ def pull_artist_and_genre(_spotify, tracks):
             processed_artists_data.append([_id, name, genres])
 
     # Create df from processed data
-    artists = pd.DataFrame(processed_artists_data,columns=['artist_id','artist_name','genres'])
+    artists = DataFrame(processed_artists_data,columns=['artist_id','artist_name','genres'])
     
     return artists
 
@@ -206,7 +183,7 @@ def refresh_data(_spotify):
 
 def create_playlist(_spotify, user_id, df, selected_genre, is_public=False):
 
-    playlist_name = selected_genre + '_' + str(uuid.uuid4())
+    playlist_name = selected_genre + '_' + str(uuid4())
     # Create playlist
     new_playlist = _spotify.user_playlist_create(user_id, playlist_name, is_public)
     # Add playlist
