@@ -14,7 +14,9 @@ st.set_page_config(
 )
 
 st.title('Welcome to Spooty!')
-st.write('Spooty is a quick hobby project by JordieB@Github. Working features are on the left, and feel free to close that sidebar.')
+welcome_msg = ('Spooty is a quick hobby project by JordieB@Github. Working '
+               'features are on the left, and feel free to close that sidebar.')
+st.write(welcome_msg)
 
 with st.container():
     cols = st.columns(2)
@@ -24,7 +26,9 @@ with st.container():
         if 'sp' not in st.session_state:
             # Start auth flow
             st.session_state['sp'] = create_spotipy_client()
-            st.success('You\'ve Authenticated!')
+            if 'sp' in st.session_state:
+                if st.session_state['sp'] is not None:
+                    st.success('You\'ve Authenticated!')
         # If user cleared auth manually
         else:
             # If client is avail aka truthy
@@ -33,7 +37,9 @@ with st.container():
             else:
                 # Start auth flow
                 st.session_state['sp'] = create_spotipy_client()
-                st.success('You\'ve Authenticated!')
+                if 'sp' in st.session_state:
+                    if st.session_state['sp'] is not None:
+                        st.success('You\'ve Authenticated!')
     # Right-side, handle clearing auth
     with cols[1]:
         if 'sp' in st.session_state:
