@@ -14,4 +14,3 @@ secrets.txt
 *.toml
 *.feather
 *.lock
-*.txt
