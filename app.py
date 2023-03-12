@@ -5,7 +5,6 @@ from utils import create_spotipy_client
 st.set_page_config(
     page_title="Spooty Homepage",
     page_icon="🏠",
-    # layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
         'Get Help': 'https://lmgtfy.app/',
