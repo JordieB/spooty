@@ -3,3 +3,4 @@
 .cache*
 *checkpoint*
 secrets.txt
+/.streamlt/

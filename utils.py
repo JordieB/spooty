@@ -1,7 +1,9 @@
 import streamlit as st
 import spotipy
+import time
 import uuid
 import pandas as pd
+import numpy as np
 from spotipy.oauth2 import SpotifyOAuth
 
 def create_spotipy_client():
@@ -28,7 +30,9 @@ def create_spotipy_client():
     # Init var for response code
     code = ''
     # Init var for user token
-    token = ''
+    token_info = ''
+    # Init var for spotify client
+    spotify = None
     # If user return to this page via redirect from Spotify OAuth,
     # Grab response code
     if 'code' in st.experimental_get_query_params():
@@ -36,56 +40,62 @@ def create_spotipy_client():
     # If response code is found:
     if code:
         # Get token
-        token = auth_manager.get_access_token(code=code)
+        token_info = auth_manager.get_access_token(code=code)
     else:
         # Attempt to grab a cached token
-        token = auth_manager.get_cached_token()
+        token_info = auth_manager.get_cached_token()
 
     # If there was no cached token,
-    if not token:
+    if not token_info:
         # Get the auth_url
         auth_url = auth_manager.get_authorize_url()
-        st.write('User Does Not Have Cached Token, Click Below to Generate Token')
         # Ask the user to start auth process
-        if st.button(label='Authorize App to Access Your Spotify Data',
+        st.warning('To Use App, You Need to Authorize Access to Your Spotify Data')
+        if st.button(label='Authorize Access to Your Spotify Data',
                     key='auth_but'):
             # If clicked, display auth URL
+            st.write('Click the link to Spotify below to open a new tab and authorize this app.')
             st.markdown(f"{auth_url}")
     # Cached token found
     else:
         # Create spotify client
-        spotify = spotipy.Spotify(auth=token)
+        spotify = spotipy.Spotify(auth=token_info['access_token'])
+        
 
-    return spotify
+    if spotify:
+        return spotify
+    else:
+        pass
 
-def init_spotipy():
-    USERNAME = st.secrets['USERNAME']
-    CLIENT_ID = st.secrets['CLIENT_ID']
-    CLIENT_SECRET = st.secrets['CLIENT_SECRET']
-    REFRESH_TOKEN = st.secrets['REFRESH_TOKEN']
-    REDIRECT_URI = st.secrets['REDIRECT_URI']
-    SCOPE = st.secrets['REFRESH_TOKEN']
-    user_id = st.secrets['user_id']
+# def init_spotipy():
+#     USERNAME = st.secrets['USERNAME']
+#     CLIENT_ID = st.secrets['CLIENT_ID']
+#     CLIENT_SECRET = st.secrets['CLIENT_SECRET']
+#     REFRESH_TOKEN = st.secrets['REFRESH_TOKEN']
+#     REDIRECT_URI = st.secrets['REDIRECT_URI']
+#     SCOPE = st.secrets['REFRESH_TOKEN']
+#     user_id = st.secrets['user_id']
 
-    auth_manager = SpotifyOAuth(
-        CLIENT_ID,
-        CLIENT_SECRET,
-        REDIRECT_URI,
-        open_browser=False,  # False to get URL, True to enter it
-        scope=SCOPE,
-        username=USERNAME
-    )
+#     auth_manager = SpotifyOAuth(
+#         CLIENT_ID,
+#         CLIENT_SECRET,
+#         REDIRECT_URI,
+#         open_browser=False,  # False to get URL, True to enter it
+#         scope=SCOPE,
+#         username=USERNAME
+#     )
 
-    refresh = auth_manager.refresh_access_token(REFRESH_TOKEN)
-    spotify = spotipy.Spotify(auth=refresh['access_token'])
+#     refresh = auth_manager.refresh_access_token(REFRESH_TOKEN)
+#     spotify = spotipy.Spotify(auth=refresh['access_token'])
 
-    return spotify
+#     return spotify
 
-def pull_playlists():
+@st.cache_data(ttl=3600)
+def pull_playlists(_spotify):
     # Init a list to hold playlist data
     all_pls = []
     # Pull down first page of current user's playlists
-    pl = spotify.current_user_playlists()
+    pl = _spotify.current_user_playlists()
     
     # Loop through to pull the rest of the pages
     while pl:
@@ -94,7 +104,7 @@ def pull_playlists():
         # If there is another page
         if pl['next']:
             # Pull it down
-            pl = spotify.next(pl)
+            pl = _spotify.next(pl)
         else:
             # Else stop on the next iteration
             pl = None
@@ -119,12 +129,13 @@ def pull_playlists():
     
     return playlists
 
-def pull_tracks(playlist_df):
+@st.cache_data(ttl=3600)
+def pull_tracks(_spotify, playlist_df):
     # Pull track data responses
     playlist_ids = playlist_df.playlist_id.values
     track_data = []
     for playlist_id in playlist_ids:
-        track_data_dict = spotify.playlist_tracks(playlist_id)
+        track_data_dict = _spotify.playlist_tracks(playlist_id)
         track_data_dict['playlist_id'] = playlist_id
         track_data.append(track_data_dict)
         time.sleep(1)
@@ -149,14 +160,15 @@ def pull_tracks(playlist_df):
     
     return tracks
 
-def pull_artist_and_genre(tracks):
+@st.cache_data(ttl=3600)
+def pull_artist_and_genre(_spotify, tracks):
     # Pull raw artist data using only unique artists
     unique_artist_ids = tracks.artist_id.unique()
     raw_artist_data = []
 
     for i in range(0,len(unique_artist_ids),50):
         payload = unique_artist_ids[i:(i+50)]
-        artist_data = spotify.artists(payload)
+        artist_data = _spotify.artists(payload)
         raw_artist_data.append(artist_data)
         time.sleep(1)
     
@@ -175,11 +187,12 @@ def pull_artist_and_genre(tracks):
     
     return artists
 
-def refresh_data():
+@st.cache_data(ttl=3600)
+def refresh_data(_spotify):
     # Pull data
-    playlists = pull_playlists()
-    tracks = pull_tracks(playlists)
-    artists = pull_artist_and_genre(tracks)
+    playlists = pull_playlists(_spotify, )
+    tracks = pull_tracks(_spotify, playlists)
+    artists = pull_artist_and_genre(_spotify, tracks)
     
     # Combine and clean
     combined = playlists.merge(tracks,on='playlist_id',how='left')
@@ -191,12 +204,12 @@ def refresh_data():
     
     return combined
 
-def create_playlist(user_id, df, selected_genre):
+def create_playlist(_spotify, user_id, df, selected_genre, is_public=False):
+
     playlist_name = selected_genre + '_' + str(uuid.uuid4())
-    is_public = False
     # Create playlist
-    new_playlist = spotify.user_playlist_create(user_id, playlist_name, is_public)
+    new_playlist = _spotify.user_playlist_create(user_id, playlist_name, is_public)
     # Add playlist
-    snapshot_id = spotify.playlist_add_items(new_playlist['id'], df.track_id.values)
+    snapshot_id = _spotify.playlist_add_items(new_playlist['id'], df.track_id.values)
 
     return snapshot_id
