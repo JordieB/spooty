@@ -147,7 +147,7 @@ def pull_artist_and_genre(_spotify, tracks):
         payload = unique_artist_ids[i:(i+50)]
         artist_data = _spotify.artists(payload)
         raw_artist_data.append(artist_data)
-        time.sleep(1)
+        sleep(1)
     
     # Process the data
     processed_artists_data = []
