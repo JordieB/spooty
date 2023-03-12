@@ -4,3 +4,13 @@
 *checkpoint*
 secrets.txt
 /.streamlt/
+
+# pdm stuff
+/__pycache__/
+/__pypackages__/
+/.streamlit/
+/.vscode/
+*.toml
+*.feather
+*.lock
+*.txt
