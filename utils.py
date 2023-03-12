@@ -4,6 +4,60 @@ import uuid
 import pandas as pd
 from spotipy.oauth2 import SpotifyOAuth
 
+def create_spotipy_client():
+
+    # SECRETS
+    CLIENT_ID = st.secrets['CLIENT_ID']
+    CLIENT_SECRET = st.secrets['CLIENT_SECRET']
+    REDIRECT_URI = st.secrets['REDIRECT_URI']
+    scopes = [
+        'playlist-modify-private',
+        'playlist-read-private',
+        'user-library-read'
+    ]
+    SCOPE = ' '.join(scopes)
+
+    auth_manager = SpotifyOAuth(
+        CLIENT_ID,
+        CLIENT_SECRET,
+        REDIRECT_URI,
+        open_browser=True,
+        scope=SCOPE
+    )
+
+    # Init var for response code
+    code = ''
+    # Init var for user token
+    token = ''
+    # If user return to this page via redirect from Spotify OAuth,
+    # Grab response code
+    if 'code' in st.experimental_get_query_params():
+        code = st.experimental_get_query_params()['code']
+    # If response code is found:
+    if code:
+        # Get token
+        token = auth_manager.get_access_token(code=code)
+    else:
+        # Attempt to grab a cached token
+        token = auth_manager.get_cached_token()
+
+    # If there was no cached token,
+    if not token:
+        # Get the auth_url
+        auth_url = auth_manager.get_authorize_url()
+        st.write('User Does Not Have Cached Token, Click Below to Generate Token')
+        # Ask the user to start auth process
+        if st.button(label='Authorize App to Access Your Spotify Data',
+                    key='auth_but'):
+            # If clicked, display auth URL
+            st.markdown(f"{auth_url}")
+    # Cached token found
+    else:
+        # Create spotify client
+        spotify = spotipy.Spotify(auth=token)
+
+    return spotify
+
 def init_spotipy():
     USERNAME = st.secrets['USERNAME']
     CLIENT_ID = st.secrets['CLIENT_ID']
