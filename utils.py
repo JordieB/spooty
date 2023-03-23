@@ -67,7 +67,7 @@ def create_spotipy_client():
     else:
         pass
 
-@st.cache_data(ttl=3600)
+@st.cache_data
 def pull_playlists(_spotify):
     # Init a list to hold playlist data
     all_pls = []
@@ -106,7 +106,7 @@ def pull_playlists(_spotify):
     
     return playlists
 
-@st.cache_data(ttl=3600)
+@st.cache_data
 def pull_tracks(_spotify, playlist_df):
     # Pull track data responses
     playlist_ids = playlist_df.playlist_id.values
@@ -137,7 +137,7 @@ def pull_tracks(_spotify, playlist_df):
     
     return tracks
 
-@st.cache_data(ttl=3600)
+@st.cache_data
 def pull_artist_and_genre(_spotify, tracks):
     # Pull raw artist data using only unique artists
     unique_artist_ids = tracks.artist_id.unique()
@@ -164,7 +164,7 @@ def pull_artist_and_genre(_spotify, tracks):
     
     return artists
 
-@st.cache_data(ttl=3600)
+@st.cache_data
 def refresh_data(_spotify):
     # Pull data
     playlists = pull_playlists(_spotify, )
