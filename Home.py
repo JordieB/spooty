@@ -1,16 +1,16 @@
 import streamlit as st
 import os
-from utils import create_spotipy_client
+from utils.spotify_helpers import create_spotipy_client
 
 st.set_page_config(
     page_title="Spooty Homepage",
     page_icon="🏠",
     initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': '...',
-        'Report a bug': '...',
-        'About': 'Lorem ipsum'
-    }
+    # menu_items={
+    #     'Get Help': '...',
+    #     'Report a bug': '...',
+    #     'About': 'Lorem ipsum'
+    # }
 )
 
 st.title('Welcome to Spooty!')

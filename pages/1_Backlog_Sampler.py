@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import refresh_data, create_playlist
+from utils.spotify_helpers import refresh_data, create_playlist
 
 # Init Spotify Client
 sp = st.session_state['sp']

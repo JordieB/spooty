@@ -9,9 +9,9 @@ from spotipy.oauth2 import SpotifyOAuth
 def create_spotipy_client():
 
     # SECRETS
-    CLIENT_ID = st.secrets['CLIENT_ID']
-    CLIENT_SECRET = st.secrets['CLIENT_SECRET']
-    REDIRECT_URI = st.secrets['REDIRECT_URI']
+    CLIENT_ID = st.secrets.spotify_app['CLIENT_ID']
+    CLIENT_SECRET = st.secrets.spotify_app['CLIENT_SECRET']
+    REDIRECT_URI = st.secrets.spotify_app['REDIRECT_URI']
     scopes = [
         'playlist-modify-private',
         'playlist-read-private',
