@@ -7,15 +7,15 @@ st.set_page_config(
     page_icon="🏠",
     initial_sidebar_state="expanded",
     menu_items={
-        'Get Help': 'https://lmgtfy.app/',
-        'Report a bug': 'https://lmgtfy.app/',
+        'Get Help': '...',
+        'Report a bug': '...',
         'About': 'Lorem ipsum'
     }
 )
 
 st.title('Welcome to Spooty!')
 welcome_msg = ('Spooty is a quick hobby project by JordieB@Github. Working '
-               'features are on the left, and feel free to close that sidebar.')
+               'features are on the left, and feel free to close the sidebar.')
 st.write(welcome_msg)
 
 with st.container():
