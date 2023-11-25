@@ -1,19 +1,2 @@
 # Streamlit-related
 .streamlit/secrets.toml
-
-/env/
-/dev/
-.cache*
-*checkpoint*
-secrets.txt
-/.streamlt/
-
-# pdm-related
-.env
-/__pycache__/
-/__pypackages__/
-/.streamlit/
-/.vscode/
-*.toml
-*.feather
-*.lock
