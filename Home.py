@@ -18,34 +18,34 @@ welcome_msg = ('Spooty is a quick hobby project by JordieB@Github. Working '
                'features are on the left, and feel free to close the sidebar.')
 st.write(welcome_msg)
 
-with st.container():
-    cols = st.columns(2)
-    # Left-side, handle auth-flow
-    with cols[0]:
-        # If user has never auth'd
-        if 'sp' not in st.session_state:
-            # Start auth flow
-            st.session_state['sp'] = create_spotipy_client()
-            if 'sp' in st.session_state:
-                if st.session_state['sp'] is not None:
-                    st.success('You\'ve Authenticated!')
-        # If user cleared auth manually
-        else:
-            # If client is avail aka truthy
-            if st.session_state['sp'] is not None:
-                st.success('You\'ve Authenticated!')
-            else:
-                # Start auth flow
-                st.session_state['sp'] = create_spotipy_client()
-                if 'sp' in st.session_state:
-                    if st.session_state['sp'] is not None:
-                        st.success('You\'ve Authenticated!')
-    # Right-side, handle clearing auth
-    with cols[1]:
-        if 'sp' in st.session_state:
-            if st.session_state['sp'] is not None:
-                st.info('Click Below to Remove App\'s Access to Your Spotify Data')
-                if st.button('Clear'):
-                    os.remove('.cache')
-                    st.session_state['sp'] = None
-                    st.experimental_get_query_params()['code'] = None
+# with st.container():
+#     cols = st.columns(2)
+#     # Left-side, handle auth-flow
+#     with cols[0]:
+#         # If user has never auth'd
+#         if 'sp' not in st.session_state:
+#             # Start auth flow
+#             st.session_state['sp'] = create_spotipy_client()
+#             if 'sp' in st.session_state:
+#                 if st.session_state['sp'] is not None:
+#                     st.success('You\'ve Authenticated!')
+#         # If user cleared auth manually
+#         else:
+#             # If client is avail aka truthy
+#             if st.session_state['sp'] is not None:
+#                 st.success('You\'ve Authenticated!')
+#             else:
+#                 # Start auth flow
+#                 st.session_state['sp'] = create_spotipy_client()
+#                 if 'sp' in st.session_state:
+#                     if st.session_state['sp'] is not None:
+#                         st.success('You\'ve Authenticated!')
+#     # Right-side, handle clearing auth
+#     with cols[1]:
+#         if 'sp' in st.session_state:
+#             if st.session_state['sp'] is not None:
+#                 st.info('Click Below to Remove App\'s Access to Your Spotify Data')
+#                 if st.button('Clear'):
+#                     os.remove('.cache')
+#                     st.session_state['sp'] = None
+#                     st.experimental_get_query_params()['code'] = None

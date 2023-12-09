@@ -8,13 +8,15 @@ import streamlit as st
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 
-def create_spotipy_client() -> Optional[Spotify]:
+@st.cache_resource
+def authenticate_spotify() -> Optional[Spotify]:
     """
-    Initialize and authenticate the Spotify client using OAuth.
+    Manage the Spotify OAuth authentication flow outside of the Streamlit
+    caching mechanism.
 
     Returns:
-        Optional[Spotify]: An authenticated Spotify client if successful, 
-                           None otherwise.
+        Optional[Spotify]: An authenticated Spotify client if successful, None
+            otherwise.
     """
     # Retrieve Spotify app credentials from Streamlit secrets
     CLIENT_ID = st.secrets.spotify_app['CLIENT_ID']
@@ -44,23 +46,22 @@ def create_spotipy_client() -> Optional[Spotify]:
     if not token_info:
         auth_url = auth_manager.get_authorize_url()
         st.warning('To Use App, Authorize Access to Your Spotify Data')
-        if st.button('Authorize Access to Your Spotify Data', key='auth_but'):
-            st.write('Click below to authorize this app on Spotify.')
-            st.markdown(auth_url)
+        # Remove st.button() from here and manage it in the Streamlit script instead
+        st.markdown(f"Click [here]({auth_url}) to authorize.")
         return None
 
     # Return an authenticated Spotify client
     return Spotify(auth=token_info['access_token'])
 
-@st.cache
-def get_playlists(sp: Spotify, user_filter: Optional[str] = None, 
+@st.cache_data
+def get_playlists(_sp: Spotify, user_filter: Optional[str] = None, 
                   collaborative_filter: Optional[bool] = None, 
                   name_prefix: Optional[str] = None) -> pd.DataFrame:
     """
     Fetch user's Spotify playlists with optional filtering.
 
     Args:
-        sp (Spotify): Authenticated Spotify client.
+        _sp (Spotify): Hashed authenticated Spotify client.
         user_filter (Optional[str]): Filter by owner's display name.
         collaborative_filter (Optional[bool]): Filter for collaborative 
             playlists.
@@ -71,11 +72,11 @@ def get_playlists(sp: Spotify, user_filter: Optional[str] = None,
     """
     # Fetch all playlists for the user with pagination
     all_playlists = []
-    playlists = sp.current_user_playlists()
+    playlists = _sp.current_user_playlists()
 
     while playlists:
         all_playlists.extend(playlists['items'])
-        playlists = sp.next(playlists) if playlists['next'] else None
+        playlists = _sp.next(playlists) if playlists['next'] else None
 
     # Convert list of playlists to DataFrame
     df_playlists = pd.DataFrame(all_playlists)
@@ -95,13 +96,13 @@ def get_playlists(sp: Spotify, user_filter: Optional[str] = None,
 
     return df_playlists
 
-@st.cache
-def pull_tracks(sp: Spotify, playlist_df: pd.DataFrame) -> pd.DataFrame:
+@st.cache_data
+def pull_tracks(_sp: Spotify, playlist_df: pd.DataFrame) -> pd.DataFrame:
     """
     Pull track data for each playlist.
 
     Args:
-        sp (Spotify): Authenticated Spotify client.
+        _sp (Spotify): Hashed authenticated Spotify client.
         playlist_df (pd.DataFrame): DataFrame containing playlist information.
 
     Returns:
@@ -110,7 +111,7 @@ def pull_tracks(sp: Spotify, playlist_df: pd.DataFrame) -> pd.DataFrame:
     # Retrieve track data for each playlist
     tracks_dfs = []
     for playlist_id in playlist_df['playlist_id']:
-        track_data = sp.playlist_tracks(playlist_id)
+        track_data = _sp.playlist_tracks(playlist_id)
 
         # Extract relevant track information and transform into DataFrame
         tracks = pd.DataFrame([track['track'] \
@@ -128,13 +129,13 @@ def pull_tracks(sp: Spotify, playlist_df: pd.DataFrame) -> pd.DataFrame:
 
     return pd.concat(tracks_dfs, ignore_index=True)
 
-@st.cache
-def pull_artist_and_genre(sp: Spotify, tracks: pd.DataFrame) -> pd.DataFrame:
+@st.cache_data
+def pull_artist_and_genre(_sp: Spotify, tracks: pd.DataFrame) -> pd.DataFrame:
     """
     Pull artist and genre data using track information.
 
     Args:
-        sp (Spotify): Authenticated Spotify client.
+        _sp (Spotify): Hashed authenticated Spotify client.
         tracks (pd.DataFrame): DataFrame containing track information.
 
     Returns:
@@ -146,7 +147,7 @@ def pull_artist_and_genre(sp: Spotify, tracks: pd.DataFrame) -> pd.DataFrame:
 
     for i in range(0, len(unique_artist_ids), 50):
         # Spotify API limits artist queries to 50 at a time
-        artist_data = sp.artists(unique_artist_ids[i:i + 50])['artists']
+        artist_data = _sp.artists(unique_artist_ids[i:i + 50])['artists']
         
         # Extract artist information and compile into a list
         for artist in artist_data:
@@ -157,3 +158,20 @@ def pull_artist_and_genre(sp: Spotify, tracks: pd.DataFrame) -> pd.DataFrame:
     # Convert artist information list to DataFrame
     return pd.DataFrame(processed_artists_data, 
                         columns=['artist_id', 'artist_name', 'genres'])
+
+def set_playlist_public_status(_sp: Spotify, playlist_id: str, 
+                               is_public: bool) -> None:
+    """
+    Set a Spotify playlist's public/private status.
+
+    Args:
+        _sp (Spotify): Hashed authenticated Spotify client.
+        playlist_id (str): The Spotify ID of the playlist.
+        is_public (bool): If True, set the playlist to public; if False, to
+            private.
+
+    Returns:
+        None
+    """
+    # Change the playlist's public/private status
+    _sp.playlist_change_details(playlist_id, public=is_public)
