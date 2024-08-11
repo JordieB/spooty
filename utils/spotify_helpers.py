@@ -1,14 +1,22 @@
 from typing import Optional
+import os
 import time
-import uuid
 
 import pandas as pd
-import numpy as np
 import streamlit as st
 from spotipy import Spotify
-from spotipy.oauth2 import SpotifyOAuth
+from spotipy.oauth2 import SpotifyOAuth, SpotifyOauthError
 
-@st.cache_resource
+def clear_spotify_credentials():
+    """
+    Clears Spotify credentials by removing the cache file and resetting 
+    the session state.
+    """
+    if os.path.exists('.cache'):
+        os.remove('.cache')
+    st.session_state['sp'] = None
+    st.query_params.clear()
+
 def authenticate_spotify() -> Optional[Spotify]:
     """
     Manage the Spotify OAuth authentication flow outside of the Streamlit
@@ -36,22 +44,30 @@ def authenticate_spotify() -> Optional[Spotify]:
     # Initialize Spotify OAuth manager
     auth_manager = SpotifyOAuth(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI,
                                 open_browser=True, scope=SCOPE)
+    
+    try:
+        # Attempt to get token
+        token_info = auth_manager.get_access_token(st.session_state['code']) \
+                     if st.session_state['code'] else auth_manager.get_cached_token()
+        
+        # If wasn't successful
+        if not token_info:
+            # Send user to auth
+            auth_url = auth_manager.get_authorize_url()
+            st.warning('To Use App, Authorize Access to Your Spotify Data')
+            st.markdown(f"Click [here]({auth_url}) to authorize.")
+            return None
 
-    # Retrieve the authorization code from the URL parameters
-    code = st.experimental_get_query_params().get('code', '')
-    token_info = auth_manager.get_access_token(code) \
-                 if code else auth_manager.get_cached_token()
+        return Spotify(auth=token_info['access_token'])
 
-    # Handle the case where the token is not obtained
-    if not token_info:
-        auth_url = auth_manager.get_authorize_url()
-        st.warning('To Use App, Authorize Access to Your Spotify Data')
-        # Remove st.button() from here and manage it in the Streamlit script instead
-        st.markdown(f"Click [here]({auth_url}) to authorize.")
+    except SpotifyOauthError as e:
+        st.error(f"Authentication error: {e}")
+        # Check if authorization code has expired
+        if "Authorization code expired" in str(e):
+            st.warning("Your authorization code has expired. Please re-authenticate.")
+            auth_url = auth_manager.get_authorize_url()
+            st.markdown(f"Click [here]({auth_url}) to re-authenticate.")
         return None
-
-    # Return an authenticated Spotify client
-    return Spotify(auth=token_info['access_token'])
 
 @st.cache_data
 def get_playlists(_sp: Spotify, user_filter: Optional[str] = None, 
