@@ -1,6 +1,9 @@
 import streamlit as st
 
-from spooty.utils.spotify_helpers import authenticate_spotify, clear_spotify_credentials
+from src.spooty.utils.spotify_helpers import (
+    authenticate_spotify,
+    clear_spotify_credentials,
+)
 
 # Setting config
 st.set_page_config(
