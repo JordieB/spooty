@@ -59,8 +59,6 @@ spooty/
 │   ├── config.toml        # Streamlit configuration
 │   ├── secrets.toml       # Secrets like API keys (should not be committed)
 │
-├── data/                  # Directory for data files
-│
 ├── src/
 │   ├── spooty/
 │   │   ├── __init__.py    # Main package marker
@@ -68,7 +66,7 @@ spooty/
 │   │   ├── pages/         # Subpackage for additional pages in the Streamlit app
 │   │   │   ├── __init__.py
 │   │   │   ├── 1_Backlog_Sampler.py
-│   │   │   ├── 2_Playlist_Privacy.py
+│   │   │   ├── [...]
 │   │   └── utils/
 │   │       ├── __init__.py
 │   │       ├── spotify_helpers.py
@@ -76,7 +74,6 @@ spooty/
 │   └── tests/             # Test files
 │       ├── __init__.py
 │
-├── .cache                 # Cache files
 ├── .gitignore             # Git ignore file
 ├── LICENSE                # Project license
 ├── logging.conf           # Python Logging configuration
