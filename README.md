@@ -31,7 +31,7 @@ Follow these steps to set up the project and get Spooty running on your local ma
    poetry install
    ```
 
-3. **Add Spotify API Credentials**: Create a `.streamlit/secrets.toml` file in the root directory of your project and add your Spotify API credentials under the `[spotify_app]` section:
+3. **Add Spotify API Credentials**: Add your Spotify API credentials to the `.streamlit/secrets.toml` file. Use the following format:
 
    ```ini
    [spotify_app]
@@ -40,62 +40,13 @@ Follow these steps to set up the project and get Spooty running on your local ma
    REDIRECT_URI = "http://localhost:8501/"
    ```
 
-   Replace `...` with your actual Spotify API credentials. This setup assumes you are testing locally; if deploying to a different environment, adjust the `REDIRECT_URI` accordingly.
-
-4. **Verify the Installation**: Once the dependencies are installed and the credentials are set, verify that everything is set up correctly by running the main Streamlit application.
+4. **Verify the Installation**: Once the dependencies are installed, verify that everything is set up correctly by running the main Streamlit application.
 
    ```bash
    poetry run streamlit run src/spooty/Home.py
    ```
 
    This command should start the Streamlit server, and you can access the application in your browser at `http://localhost:8501`.
-
-### Best Practices
-
-To ensure smooth development and consistent builds, adhere to the following best practices:
-
-1. **Sync `pyproject.toml` and `poetry.lock`**: If you manually update the `pyproject.toml` file (e.g., adding or updating dependencies manually instead of using `poetry add` or similar), ensure the changes are reflected in the `poetry.lock` file to maintain consistency across environments.
-
-   ```bash
-   poetry lock
-   poetry install
-   ```
-
-2. **Handle Environment Changes**: If you change the Python version or make significant changes to dependencies, consider removing the existing virtual environment and reinstalling it to avoid conflicts or stale dependencies.
-
-   ```bash
-   poetry env remove $(poetry env info --path)
-   poetry install
-   ```
-
-3. **Keep Dependencies Up-to-Date**: Regularly update your dependencies to the latest compatible versions by running:
-
-   ```bash
-   poetry update
-   ```
-
-   This ensures that your project remains secure and benefits from the latest features and bug fixes.
-
-4. **Version Control**: Always commit your `pyproject.toml` and `poetry.lock` files to version control. This ensures that all team members and deployment environments use the exact same dependency versions.
-
-5. **Testing and Linting**: Regularly run tests and linting tools to maintain code quality.
-
-   ```bash
-   poetry run lint
-   poetry run test
-   ```
-
-6. **Check Before Formatting**: Before running `black`, it's often helpful to run it with the `--check` flag to see what files it will reformat without making changes:
-
-   ```bash
-   poetry run black . --check --verbose
-   ```
-
-7. **Clear Caches**: If you encounter issues with configuration not being respected, try clearing Poetry's cache to ensure your environment is not overriding your `pyproject.toml` settings:
-
-   ```bash
-   poetry cache clear --all pypoetry
-   ```
 
 ### Project Structure
 
@@ -108,18 +59,29 @@ spooty/
 │   ├── config.toml        # Streamlit configuration
 │   ├── secrets.toml       # Secrets like API keys (should not be committed)
 │
-├── dev_tools/
-│   ├── __init__.py        # Package marker
-│   ├── lint.py            # Linting and code quality checks
+├── data/                  # Directory for data files
 │
-├── spooty/
-│   ├── __init__.py        # Main package marker
-│   ├── Home.py            # Main entry point for the Streamlit app
-│   ├── pages/             # Subpackage for additional pages in the Streamlit app
-│   │   ├── __init__.py
-│   │   ├── backlog_sampler.py
-│   │   ├── playlist_privacy.py
-│   └── utils/
+├── src/
+│   ├── spooty/
+│   │   ├── __init__.py    # Main package marker
+│   │   ├── Home.py        # Main entry point for the Streamlit app
+│   │   ├── pages/         # Subpackage for additional pages in the Streamlit app
+│   │   │   ├── __init__.py
+│   │   │   ├── 1_Backlog_Sampler.py
+│   │   │   ├── 2_Playlist_Privacy.py
+│   │   └── utils/
+│   │       ├── __init__.py
+│   │       ├── spotify_helpers.py
+│   │
+│   └── tests/             # Test files
 │       ├── __init__.py
-│       ├── spotify_helpers.py
+│
+├── .cache                 # Cache files
+├── .gitignore             # Git ignore file
+├── LICENSE                # Project license
+├── logging.conf           # Python Logging configuration
+├── Makefile               # Makefile for project management
+├── poetry.lock            # Poetry lock file
+├── pyproject.toml         # Poetry configuration
+└── README.md              # Project README
 ```
