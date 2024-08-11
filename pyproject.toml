@@ -1,0 +1,89 @@
+[tool.poetry]
+name = "spooty"
+version = "0.1.0"
+description = ""
+authors = ["Jordie Belle <hello.jordie.belle@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "src/spooty" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.2"
+spotipy = "^2.24.0"
+streamlit = "^1.37.1"
+pandas-stubs = "^2.2.2.240807"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.8.0"
+isort = "^5.13.2"
+flake8 = "^7.1.1"
+flake8-pyproject = "^1.2.3"  # Required to use pyproject.toml to config flake8
+bandit = "^1.7.9"
+pip-audit = "^2.7.3"
+pytest = "^8.3.2"
+mypy = "^1.11.1"
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = "\\.pyi?$"
+# Regular expression for what to exclude
+exclude = '''
+    /(
+        \.git
+      | \.venv
+      | __pycache__
+      | old
+      | build
+      | dist
+      | .mypy_cache
+    )/
+'''
+
+[tool.isort]
+profile = "black"
+skip = [
+    ".git",
+    "__pycache__",
+    "old",
+    "build",
+    "dist",
+    ".venv",
+    ".mypy_cache"
+]
+
+[tool.flake8]
+# Ignore common error codes that conflict with `black`
+ignore = [
+    "E203",
+    "E501",
+    "W503"
+]
+max-line-length = 88
+exclude = [
+    ".venv/"
+]
+
+[tool.mypy]
+mypy_path = "src/spooty"
+
+[tool.bandit]
+exclude_dirs = [
+    ".git",
+    "__pycache__",
+    "old",
+    "build",
+    "dist",
+    ".venv",
+    ".mypy_cache",
+]
+
+[tool.pytest]
+addopts = "--ignore=.mypy_cache --ignore=.venv --ignore=__pycache__ --ignore=.git"
+
+[tool.poetry.scripts]
+checks = "dev_tools.checks:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
