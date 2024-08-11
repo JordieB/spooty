@@ -22,7 +22,7 @@ test:
 	@poetry run pytest
 
 .PHONY: all
-all: clean-venv format lint security test
+all: format lint security test
 
 .PHONY: help
 help:
