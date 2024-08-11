@@ -1,6 +1,6 @@
 import streamlit as st
 
-from src.spooty.utils.spotify_helpers import create_playlist, refresh_data
+from src.spooty.utils.spotify_helpers import create_sample_playlist, refresh_data
 
 # Init Spotify Client
 sp = st.session_state["sp"]
@@ -44,7 +44,7 @@ st.dataframe(display_df.loc[:, ["track_name"]], use_container_width=True)
 # If pressed, create playlists from this sample
 if st.button("Save Sample as Playlist"):
     if selected_genre is not None:
-        snapshot_id = create_playlist(sp, user_id, display_df, selected_genre)
+        snapshot_id = create_sample_playlist(sp, user_id, display_df, selected_genre)
         st.write(f"Snapshot ID: {snapshot_id}")
     else:
         st.error("Please select a genre before saving the playlist.")

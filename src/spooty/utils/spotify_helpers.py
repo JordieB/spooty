@@ -64,6 +64,7 @@ def authenticate_spotify() -> Optional[Spotify]:
             st.markdown(f"Click [here]({auth_url}) to authorize.")
             return None
 
+        # Token will be automatically refreshed if it is expired
         return Spotify(auth=token_info["access_token"])
 
     except SpotifyOauthError as e:
@@ -205,7 +206,7 @@ def set_playlist_public_status(_sp: Spotify, playlist_id: str, is_public: bool) 
     _sp.playlist_change_details(playlist_id, public=is_public)
 
 
-def create_playlist(sp: Spotify, user_id: str, df: pd.DataFrame, genre: str) -> str:
+def create_sample_playlist(sp: Spotify, user_id: str, df: pd.DataFrame, genre: str) -> str:
     """
     Create a new playlist in Spotify and add the selected tracks.
 
