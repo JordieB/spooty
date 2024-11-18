@@ -2,6 +2,7 @@ import os
 import time
 from typing import Optional
 
+import requests
 import pandas as pd
 import streamlit as st
 from spotipy import Spotify  # type: ignore
@@ -65,7 +66,7 @@ def authenticate_spotify() -> Optional[Spotify]:
             return None
 
         # Token will be automatically refreshed if it is expired
-        return Spotify(auth=token_info["access_token"])
+        return Spotify(auth_manager=auth_manager)
 
     except SpotifyOauthError as e:
         st.error(f"Authentication error: {e}")
@@ -188,22 +189,35 @@ def pull_artist_and_genre(_sp: Spotify, tracks: pd.DataFrame) -> pd.DataFrame:
         processed_artists_data, columns=["artist_id", "artist_name", "genres"]
     )
 
-
-def set_playlist_public_status(_sp: Spotify, playlist_id: str, is_public: bool) -> None:
+def set_playlist_public_status(_sp, playlist_id, playlist_name, is_public):
     """
-    Set a Spotify playlist's public/private status.
+    Set the public/private status of a Spotify playlist.
 
     Args:
-        _sp (Spotify): Hashed authenticated Spotify client.
         playlist_id (str): The Spotify ID of the playlist.
-        is_public (bool): If True, set the playlist to public; if False, to
-            private.
+        is_public (bool): True to make the playlist public, False to make it private.
 
     Returns:
-        None
+        bool: True if the operation was successful, False otherwise.
     """
-    # Change the playlist's public/private status
-    _sp.playlist_change_details(playlist_id, public=is_public)
+    access_token = _sp.auth_manager.get_access_token(as_dict=False)
+    url = f'https://api.spotify.com/v1/playlists/{playlist_id}'
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'public': is_public
+    }
+
+    response = requests.put(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        st.toast((f"Playlist '{playlist_name} ({playlist_id})' privacy status updated "
+                 f"successfully."))
+    else:
+        st.toast((f"Failed to update playlist '{playlist_name} ({playlist_id})' privacy"
+                  f" status. Status code: {response.status_code}"), icon="🚨")
 
 
 def create_sample_playlist(

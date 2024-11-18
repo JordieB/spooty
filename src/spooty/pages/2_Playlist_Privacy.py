@@ -1,7 +1,5 @@
 import streamlit as st
-
 from src.spooty.utils.spotify_helpers import get_playlists, set_playlist_public_status
-
 
 def main():
     st.title("Spooty's Playlist Privacy Manager")
@@ -19,6 +17,19 @@ def main():
         st.write("No playlists found!")
         return
 
+    # Inject custom CSS to limit the height of the multi-select dropdown
+    st.markdown(
+        """
+        <style>
+        div[data-baseweb="select"] {
+            max-height: 300px;
+            overflow: auto;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # Checkbox to select/deselect all playlists
     select_all = st.checkbox("Select/Deselect All", key="select_all")
 
@@ -31,7 +42,6 @@ def main():
 
     # Container for the multi-select widget
     container = st.container()
-    # Define multiselect widget in the container
     selected_playlists = container.multiselect(
         "Selected Playlists",
         options=playlist_names,
@@ -40,23 +50,14 @@ def main():
 
     # Process button actions after selections have been made
     if make_private:
-        for pl_id in [
-            playlist_ids[i]
-            for i, pl_name in enumerate(playlist_names)
-            if pl_name in selected_playlists
-        ]:
-            set_playlist_public_status(sp, pl_id, False)
-        st.success("Selected playlists have been made private.")
+        for pl_id, pl_name in zip(playlist_ids, playlist_names):
+            if pl_name in selected_playlists:
+                set_playlist_public_status(sp, pl_id, pl_name, False)
 
     if make_public:
-        for pl_id in [
-            playlist_ids[i]
-            for i, pl_name in enumerate(playlist_names)
-            if pl_name in selected_playlists
-        ]:
-            set_playlist_public_status(sp, pl_id, True)
-        st.success("Selected playlists have been made public.")
-
+        for pl_id, pl_name in zip(playlist_ids, playlist_names):
+            if pl_name in selected_playlists:
+                set_playlist_public_status(sp, pl_id, pl_name, True)
 
 if __name__ == "__main__":
     main()

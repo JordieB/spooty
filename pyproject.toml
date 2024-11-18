@@ -12,6 +12,7 @@ pandas = "^2.2.2"
 spotipy = "^2.24.0"
 streamlit = "^1.37.1"
 pandas-stubs = "^2.2.2.240807"
+requests = "^2.32.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
