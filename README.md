@@ -4,6 +4,26 @@
 
 **Spooty** is a Python-based application designed to interact with the Spotify API, providing users with features such as playlist management, privacy controls, and more. Built using Streamlit for the frontend and Spotipy for Spotify integration, Spooty offers a clean and user-friendly interface for managing Spotify playlists and exploring music data.
 
+## Features
+
+- Playlist management and privacy controls
+- Playlist Sync: Create or update a playlist with only your liked songs from another playlist (see below)
+
+## Playlist Sync
+
+The Playlist Sync feature allows you to:
+- Select a source playlist
+- Select a destination playlist (or create a new one)
+- Sync only the songs from the source playlist that are also in your Liked Songs and not already in the destination playlist
+
+**How to use:**
+1. Run the app as described above
+2. Go to the "Playlist Sync" page in the sidebar
+3. Select your source playlist
+4. Choose to create a new playlist or update an existing one
+5. Click "Sync Playlists"
+6. The destination playlist will be updated with the filtered songs
+
 ## Build Guide
 
 ### Requirements
@@ -50,7 +70,7 @@ Follow these steps to set up the project and get Spooty running on your local ma
 
 ### Project Structure
 
-Here’s an overview of the project structure to help you navigate the codebase:
+Here's an overview of the project structure to help you navigate the codebase:
 
 ```
 spooty/
