@@ -78,7 +78,6 @@ def authenticate_spotify() -> Optional[Spotify]:
         return None
 
 
-@st.cache_data
 def get_playlists(
     _sp: Spotify,
     user_filter: Optional[str] = None,
@@ -262,3 +261,110 @@ def refresh_data(sp: Spotify) -> pd.DataFrame:
     artist_genre_df = pull_artist_and_genre(sp, tracks_df)
     combined_df = tracks_df.merge(artist_genre_df, on="artist_id", how="left")
     return combined_df
+
+
+@st.cache_data
+def get_liked_songs(_sp: Spotify) -> pd.DataFrame:
+    """
+    Fetch all of the user's liked songs from Spotify.
+
+    Args:
+        _sp (Spotify): Hashed authenticated Spotify client.
+
+    Returns:
+        pd.DataFrame: DataFrame containing liked songs information.
+    """
+    all_tracks = []
+    results = _sp.current_user_saved_tracks(limit=50)
+    
+    while results:
+        for item in results['items']:
+            track = item['track']
+            all_tracks.append({
+                'track_id': track['id'],
+                'track_name': track['name'],
+                'artist_name': track['artists'][0]['name'],
+                'artist_id': track['artists'][0]['id']
+            })
+        if results['next']:
+            results = _sp.next(results)
+        else:
+            results = None
+        time.sleep(0.1)  # Small delay to prevent rate limiting
+    
+    return pd.DataFrame(all_tracks)
+
+
+def sync_playlist_with_liked_songs(
+    _sp: Spotify,
+    source_playlist_id: str,
+    destination_playlist_id: Optional[str] = None,
+    destination_playlist_name: Optional[str] = None,
+    user_id: Optional[str] = None
+) -> str:
+    """
+    Sync a playlist with liked songs, creating a new playlist or updating an existing one.
+
+    Args:
+        _sp (Spotify): Authenticated Spotify client.
+        source_playlist_id (str): ID of the source playlist.
+        destination_playlist_id (Optional[str]): ID of the destination playlist. If None, a new playlist will be created.
+        destination_playlist_name (Optional[str]): Name for the new playlist if creating one.
+        user_id (Optional[str]): Spotify user ID. Required if creating a new playlist.
+
+    Returns:
+        str: ID of the destination playlist.
+    """
+    # Get source playlist tracks
+    source_tracks = []
+    results = _sp.playlist_tracks(source_playlist_id)
+    while results:
+        source_tracks.extend([item['track']['id'] for item in results['items']])
+        if results['next']:
+            results = _sp.next(results)
+        else:
+            results = None
+        time.sleep(0.1)
+
+    # Get liked songs
+    liked_songs = get_liked_songs(_sp)
+    liked_track_ids = set(liked_songs['track_id'].tolist())
+
+    # Filter source tracks to only those that are liked
+    tracks_to_add = [track_id for track_id in source_tracks if track_id in liked_track_ids]
+
+    # If no destination playlist is specified, create a new one
+    if not destination_playlist_id:
+        if not user_id or not destination_playlist_name:
+            raise ValueError("user_id and destination_playlist_name are required when creating a new playlist")
+        
+        # Create new playlist
+        new_playlist = _sp.user_playlist_create(
+            user_id,
+            destination_playlist_name,
+            description=f"Playlist created from {source_playlist_id} containing only liked songs"
+        )
+        destination_playlist_id = new_playlist['id']
+    else:
+        # Get existing tracks in destination playlist
+        existing_tracks = []
+        results = _sp.playlist_tracks(destination_playlist_id)
+        while results:
+            existing_tracks.extend([item['track']['id'] for item in results['items']])
+            if results['next']:
+                results = _sp.next(results)
+            else:
+                results = None
+            time.sleep(0.1)
+        
+        # Remove tracks that are already in the destination playlist
+        tracks_to_add = [track_id for track_id in tracks_to_add if track_id not in existing_tracks]
+
+    # Add tracks to destination playlist in batches of 100 (Spotify API limit)
+    for i in range(0, len(tracks_to_add), 100):
+        batch = tracks_to_add[i:i + 100]
+        if batch:
+            _sp.playlist_add_items(destination_playlist_id, batch)
+            time.sleep(0.1)
+
+    return destination_playlist_id
