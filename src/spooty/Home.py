@@ -1,6 +1,6 @@
 import streamlit as st
 
-from src.spooty.utils.spotify_helpers import (
+from spooty.utils.spotify_helpers import (
     authenticate_spotify,
     clear_spotify_credentials,
 )

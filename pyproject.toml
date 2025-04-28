@@ -4,7 +4,6 @@ version = "0.1.0"
 description = ""
 authors = ["Jordie Belle <hello.jordie.belle@gmail.com>"]
 readme = "README.md"
-packages = [{ include = "src/spooty" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -13,6 +12,7 @@ spotipy = "^2.24.0"
 streamlit = "^1.37.1"
 pandas-stubs = "^2.2.2.240807"
 requests = "^2.32.3"
+ipykernel = "^6.29.5"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"

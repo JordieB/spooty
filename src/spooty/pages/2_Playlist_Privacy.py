@@ -1,5 +1,5 @@
 import streamlit as st
-from src.spooty.utils.spotify_helpers import get_playlists, set_playlist_public_status
+from spooty.utils.spotify_helpers import get_playlists, set_playlist_public_status
 
 def main():
     st.title("Spooty's Playlist Privacy Manager")
