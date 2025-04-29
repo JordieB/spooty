@@ -295,19 +295,19 @@ def create_sample_playlist(
 
 
 @st.cache_data
-def refresh_data(sp: Spotify) -> pd.DataFrame:
+def refresh_data(_sp: Spotify) -> pd.DataFrame:
     """
     Pull down playlist, track, and genre data using the authenticated Spotify client.
 
     Args:
-        sp (Spotify): Authenticated Spotify client.
+        _sp (Spotify): Authenticated Spotify client.
 
     Returns:
         pd.DataFrame: DataFrame containing track and genre information.
     """
-    playlists_df = get_playlists(sp)
-    tracks_df = pull_tracks(sp, playlists_df)
-    artist_genre_df = pull_artist_and_genre(sp, tracks_df)
+    playlists_df = get_playlists(_sp)
+    tracks_df = pull_tracks(_sp, playlists_df)
+    artist_genre_df = pull_artist_and_genre(_sp, tracks_df)
     combined_df = tracks_df.merge(artist_genre_df, on="artist_id", how="left")
     return combined_df
 

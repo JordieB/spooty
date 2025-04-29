@@ -6,6 +6,11 @@ from spooty.utils.spotify_helpers import (
     authenticate_spotify,
     clear_spotify_credentials,
 )
+from spooty.utils.logging_setup import setup_logging, get_logger
+
+# Initialize logging
+setup_logging()
+logger = get_logger(__name__)
 
 # Setting config with improved theme
 st.set_page_config(
