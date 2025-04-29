@@ -1,12 +1,22 @@
 import os
 import time
-from typing import Optional
+from typing import Optional, List, Dict
+from functools import lru_cache
+import logging
 
 import requests
 import pandas as pd
 import streamlit as st
 from spotipy import Spotify  # type: ignore
 from spotipy.oauth2 import SpotifyOAuth, SpotifyOauthError  # type: ignore
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Constants for batch processing
+BATCH_SIZE = 50
+API_RATE_LIMIT_DELAY = 1.0  # seconds
 
 
 def clear_spotify_credentials():
@@ -78,6 +88,7 @@ def authenticate_spotify() -> Optional[Spotify]:
         return None
 
 
+@st.cache_data(ttl=3600)  # Cache for 1 hour
 def get_playlists(
     _sp: Spotify,
     user_filter: Optional[str] = None,
@@ -85,25 +96,32 @@ def get_playlists(
     name_prefix: Optional[str] = None,
 ) -> pd.DataFrame:
     """
-    Fetch user's Spotify playlists with optional filtering.
-
-    Args:
-        _sp (Spotify): Hashed authenticated Spotify client.
-        user_filter (Optional[str]): Filter by owner's display name.
-        collaborative_filter (Optional[bool]): Filter for collaborative
-            playlists.
-        name_prefix (Optional[str]): Filter by playlist name prefix.
-
-    Returns:
-        pd.DataFrame: DataFrame containing the playlists.
+    Fetch user's Spotify playlists with optional filtering and improved caching.
     """
-    # Fetch all playlists for the user with pagination
+    logger.info("Fetching playlists with filters: user=%s, collaborative=%s, prefix=%s",
+                user_filter, collaborative_filter, name_prefix)
+    
+    # Fetch all playlists for the user with pagination and progress tracking
     all_playlists = []
     playlists = _sp.current_user_playlists()
-
+    total_playlists = playlists.get('total', 0)
+    processed = 0
+    
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
     while playlists:
         all_playlists.extend(playlists["items"])
+        processed += len(playlists["items"])
+        progress = processed / total_playlists
+        progress_bar.progress(progress)
+        status_text.text(f"Processing {processed}/{total_playlists} playlists...")
+        
         playlists = _sp.next(playlists) if playlists["next"] else None
+        time.sleep(API_RATE_LIMIT_DELAY)
+
+    progress_bar.empty()
+    status_text.empty()
 
     # Convert list of playlists to DataFrame
     df_playlists = pd.DataFrame(all_playlists)
@@ -126,67 +144,98 @@ def get_playlists(
     return df_playlists
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def pull_tracks(_sp: Spotify, playlist_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Pull track data for each playlist.
-
-    Args:
-        _sp (Spotify): Hashed authenticated Spotify client.
-        playlist_df (pd.DataFrame): DataFrame containing playlist information.
-
-    Returns:
-        pd.DataFrame: DataFrame containing track information.
+    Pull track data for each playlist with batch processing and progress tracking.
     """
-    # Retrieve track data for each playlist
+    logger.info("Pulling tracks for %d playlists", len(playlist_df))
+    
+    # Initialize progress tracking
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    total_playlists = len(playlist_df)
+    
+    # Process playlists in batches
     tracks_dfs = []
-    for playlist_id in playlist_df["playlist_id"]:
-        track_data = _sp.playlist_tracks(playlist_id)
+    for i, playlist_id in enumerate(playlist_df["playlist_id"]):
+        try:
+            track_data = _sp.playlist_tracks(playlist_id)
+            
+            # Extract relevant track information and transform into DataFrame
+            tracks = pd.DataFrame([track["track"] for track in track_data["items"]])
+            tracks["artist_name"] = tracks["artists"].apply(lambda x: x[0]["name"])
+            tracks["artist_id"] = tracks["artists"].apply(lambda x: x[0]["id"])
+            tracks = tracks[["artist_name", "artist_id", "name", "id"]]
+            tracks.rename(columns={"name": "track_name", "id": "track_id"}, inplace=True)
+            tracks["playlist_id"] = playlist_id
+            tracks_dfs.append(tracks)
+            
+            # Update progress
+            progress = (i + 1) / total_playlists
+            progress_bar.progress(progress)
+            status_text.text(f"Processing playlist {i + 1}/{total_playlists}")
+            
+            time.sleep(API_RATE_LIMIT_DELAY)
+            
+        except Exception as e:
+            logger.error(f"Error processing playlist {playlist_id}: {str(e)}")
+            st.warning(f"Error processing playlist {playlist_id}. Skipping...")
+            continue
 
-        # Extract relevant track information and transform into DataFrame
-        tracks = pd.DataFrame([track["track"] for track in track_data["items"]])
-        tracks["artist_name"] = tracks["artists"].apply(lambda x: x[0]["name"])
-        tracks["artist_id"] = tracks["artists"].apply(lambda x: x[0]["id"])
-        tracks = tracks[["artist_name", "artist_id", "name", "id"]]
-        tracks.rename(columns={"name": "track_name", "id": "track_id"}, inplace=True)
-        tracks["playlist_id"] = playlist_id
-        tracks_dfs.append(tracks)
-        time.sleep(1)  # Sleep to prevent hitting API rate limits
-
+    progress_bar.empty()
+    status_text.empty()
+    
     return pd.concat(tracks_dfs, ignore_index=True)
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def pull_artist_and_genre(_sp: Spotify, tracks: pd.DataFrame) -> pd.DataFrame:
     """
-    Pull artist and genre data using track information.
-
-    Args:
-        _sp (Spotify): Hashed authenticated Spotify client.
-        tracks (pd.DataFrame): DataFrame containing track information.
-
-    Returns:
-        pd.DataFrame: DataFrame containing artist and genre information.
+    Pull artist and genre data using track information with batch processing.
     """
-    # Get unique artist IDs from tracks and fetch artist information
+    logger.info("Pulling artist and genre data for %d tracks", len(tracks))
+    
+    # Get unique artist IDs from tracks
     unique_artist_ids = tracks["artist_id"].unique()
+    total_artists = len(unique_artist_ids)
+    
+    # Initialize progress tracking
+    progress_bar = st.progress(0)
+    status_text = st.empty()
     processed_artists_data = []
+    
+    # Process artists in batches
+    for i in range(0, len(unique_artist_ids), BATCH_SIZE):
+        try:
+            batch_ids = unique_artist_ids[i:i + BATCH_SIZE]
+            artist_data = _sp.artists(batch_ids)["artists"]
+            
+            # Extract artist information
+            for artist in artist_data:
+                processed_artists_data.append(
+                    [artist["id"], artist["name"], artist["genres"]]
+                )
+            
+            # Update progress
+            progress = min((i + BATCH_SIZE) / total_artists, 1.0)
+            progress_bar.progress(progress)
+            status_text.text(f"Processing artists {i + 1}-{min(i + BATCH_SIZE, total_artists)}/{total_artists}")
+            
+            time.sleep(API_RATE_LIMIT_DELAY)
+            
+        except Exception as e:
+            logger.error(f"Error processing artist batch: {str(e)}")
+            st.warning(f"Error processing artist batch. Some data may be missing.")
+            continue
 
-    for i in range(0, len(unique_artist_ids), 50):
-        # Spotify API limits artist queries to 50 at a time
-        artist_data = _sp.artists(unique_artist_ids[i : i + 50])["artists"]
-
-        # Extract artist information and compile into a list
-        for artist in artist_data:
-            processed_artists_data.append(
-                [artist["id"], artist["name"], artist["genres"]]
-            )
-        time.sleep(1)  # Sleep to prevent hitting API rate limits
-
-    # Convert artist information list to DataFrame
+    progress_bar.empty()
+    status_text.empty()
+    
     return pd.DataFrame(
         processed_artists_data, columns=["artist_id", "artist_name", "genres"]
     )
+
 
 def set_playlist_public_status(_sp, playlist_id, playlist_name, is_public):
     """
