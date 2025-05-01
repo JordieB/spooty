@@ -50,4 +50,7 @@ def get_logger(name: str) -> logging.Logger:
     """
     # Ensure logging is initialized
     setup_logging()
-    return logging.getLogger(name) 
+    
+    # Get logger with the spooty prefix to ensure proper handler configuration
+    logger_name = f"spooty.{name}" if not name.startswith("spooty") else name
+    return logging.getLogger(logger_name) 
